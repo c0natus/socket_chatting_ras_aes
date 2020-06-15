@@ -57,7 +57,6 @@ public class Server {
   	 *	params: null
   	 *	modulus: 23861943561036244894366825182473601710745899993903073317155944944894843266152734008667664734678932244560143671137293628334001481511854804216390451182162896872630838313281736195325722266148484456896219681267594467374010033965504773083508766594340607256941025873168841099160242101196715450986052302438066239811161985805890570701583597365808949970393943728419250390352370097669239270615081347291705891364965760763102373760238554747178792764266935663267447238909125111492585387796702831450934370137093064047316073059298066155179400041216920895399982439464260603975351724005444761591745051627533844885375962744737423018113
   	 *	public exponent: 65537
-  	 *  ����Ű�� ���ڿ��� �����.
 	 * */
 	public static String raspublick_str(Key public_rsak) throws Exception{
 		RSAPublicKeySpec publickeyspec = KeyFactory.getInstance("RSA").getKeySpec(public_rsak, RSAPublicKeySpec.class);
@@ -73,7 +72,7 @@ public class Server {
 		
 	}
 
-	/*rsa 복호화*/
+	/*rsa */
 	public static String deRSA(String encrypted, Key rsaprivatek) throws Exception{
 
 	        Cipher cipher = Cipher.getInstance("RSA");
@@ -131,7 +130,6 @@ class send2client extends Thread {
 		byte[] ivBytes = params.getParameterSpec(IvParameterSpec.class).getIV();
 		byte[] encryptedTextBytes = cipher.doFinal(plainText.getBytes("UTF-8"));
 		byte[] keyBytes = secret.getEncoded();
-		System.out.println(keyBytes.length);
 		byte[] buffer = new byte[ivBytes.length + encryptedTextBytes.length];
 		System.arraycopy(ivBytes, 0, buffer, 0 , ivBytes.length);
 		System.arraycopy(encryptedTextBytes, 0, buffer, ivBytes.length, encryptedTextBytes.length);
@@ -195,7 +193,6 @@ class recvfclient extends Thread{
 		buffer.get(ivBytes,0,ivBytes.length);
 		byte[] encryoptedTextBytes = new byte[buffer.capacity()-ivBytes.length];
 		buffer.get(encryoptedTextBytes);
-		
 		cipher.init(Cipher.DECRYPT_MODE,secret,new IvParameterSpec(ivBytes));
 		byte[] decryptedTextBytes = cipher.doFinal(encryoptedTextBytes);
 		String buf = new String(decryptedTextBytes,"UTF-8");

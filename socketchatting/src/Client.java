@@ -38,7 +38,7 @@ public class Client {
 			r.setSocket(cli_socket);
 			r.setKey(secretkey);
 			send2server s = new send2server();
-			r.setKey(secretkey);
+			s.setKey(secretkey);
 			s.setSocket(cli_socket);
 			
 			r.start();
@@ -94,18 +94,19 @@ class send2server extends Thread{
 	public void setKey(Key _key) {
 		secretkey = _key;
 	}
+	public void setSocket(Socket _socket) {
+		cli_socket = _socket;
+	}
 	
 	public void run() {
 		super.run();
 		try {
 			BufferedReader keyboard = new BufferedReader(new InputStreamReader(System.in));
 			PrintWriter npw = new PrintWriter(cli_socket.getOutputStream());
-			System.out.println(secretkey);
 			String line = null;
 			while(true) {
 				System.out.print("> ");
 				line = keyboard.readLine();
-	
 				String en = enAES(line,secretkey);
 				npw.println(en);
 				npw.flush();
@@ -126,7 +127,6 @@ class send2server extends Thread{
 		byte[] ivBytes = params.getParameterSpec(IvParameterSpec.class).getIV();
 		byte[] encryptedTextBytes = cipher.doFinal(plainText.getBytes("UTF-8"));
 		byte[] keyBytes = secret.getEncoded();
-		System.out.println(keyBytes.length);
 		byte[] buffer = new byte[ivBytes.length + encryptedTextBytes.length];
 		System.arraycopy(ivBytes, 0, buffer, 0 , ivBytes.length);
 		System.arraycopy(encryptedTextBytes, 0, buffer, ivBytes.length, encryptedTextBytes.length);
@@ -134,10 +134,6 @@ class send2server extends Thread{
 		String buf = Base64.getEncoder().encodeToString(buffer);
 		return buf;
 	 }
-	
-	public void setSocket(Socket _socket) {
-		cli_socket = _socket;
-	}
 }
 
 class recvfserver extends Thread{
@@ -192,7 +188,6 @@ class recvfserver extends Thread{
 		buffer.get(ivBytes,0,ivBytes.length);
 		byte[] encryoptedTextBytes = new byte[buffer.capacity()-ivBytes.length];
 		buffer.get(encryoptedTextBytes);
-		
 		cipher.init(Cipher.DECRYPT_MODE,secret,new IvParameterSpec(ivBytes));
 		byte[] decryptedTextBytes = cipher.doFinal(encryoptedTextBytes);
 		String buf = new String(decryptedTextBytes,"UTF-8");
