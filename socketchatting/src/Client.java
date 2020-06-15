@@ -1,6 +1,8 @@
 import java.io.*;
 import java.math.BigInteger;
 import java.net.*;
+import java.nio.ByteBuffer;
+import java.security.AlgorithmParameters;
 import java.security.Key;
 import java.security.KeyFactory;
 import java.security.SecureRandom;
@@ -9,6 +11,7 @@ import java.util.Base64;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
+import javax.crypto.spec.IvParameterSpec;
 
 public class Client {
 
@@ -30,9 +33,6 @@ public class Client {
 			PrintWriter pw = new PrintWriter(cli_socket.getOutputStream());
 			pw.println(en);
 			pw.flush();
-			
-			
-			
 			
 			recvfserver r = new recvfserver();
 			r.setSocket(cli_socket);
@@ -109,6 +109,21 @@ class send2server extends Thread{
 			System.out.println(e);
 		}
 	}
+	public static String enAES(String plainText, Key secret) throws Exception{
+		Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+		cipher.init(Cipher.ENCRYPT_MODE, secret);
+		AlgorithmParameters params = cipher.getParameters();
+		byte[] ivBytes = params.getParameterSpec(IvParameterSpec.class).getIV();
+		byte[] encryptedTextBytes = cipher.doFinal(plainText.getBytes("UTF-8"));
+		byte[] keyBytes = secret.getEncoded();
+		System.out.println(keyBytes.length);
+		byte[] buffer = new byte[ivBytes.length + encryptedTextBytes.length];
+		System.arraycopy(ivBytes, 0, buffer, 0 , ivBytes.length);
+		System.arraycopy(encryptedTextBytes, 0, buffer, ivBytes.length, encryptedTextBytes.length);
+		
+		String buf = Base64.getEncoder().encodeToString(buffer);
+		return buf;
+	 }
 	
 	public void setSocket(Socket _socket) {
 		cli_socket = _socket;
@@ -118,6 +133,7 @@ class send2server extends Thread{
 class recvfserver extends Thread{
 	
 	private Socket cli_socket;
+
 	
 	public void setSocket(Socket _socket) {
 		cli_socket = _socket;
@@ -132,7 +148,8 @@ class recvfserver extends Thread{
 			
 			while(true) {
 				msg = br.readLine();
-				System.out.println(msg);
+				String plain = deAES(msg,);
+				System.out.println(plain);
 				if(msg==null) {
 					System.out.println("exit");
 					cli_socket.close();
@@ -144,6 +161,21 @@ class recvfserver extends Thread{
 			System.out.println(e);
 		}
 	}
+	public static String deAES(String en, Key secret) throws Exception{
+		 
+		Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+		ByteBuffer buffer = ByteBuffer.wrap(Base64.getDecoder().decode(en));
+		byte[] ivBytes = new byte[cipher.getBlockSize()];
+		buffer.get(ivBytes,0,ivBytes.length);
+		byte[] encryoptedTextBytes = new byte[buffer.capacity()-ivBytes.length];
+		buffer.get(encryoptedTextBytes);
+		
+		cipher.init(Cipher.DECRYPT_MODE,secret,new IvParameterSpec(ivBytes));
+		byte[] decryptedTextBytes = cipher.doFinal(encryoptedTextBytes);
+		String buf = new String(decryptedTextBytes,"UTF-8");
+		return buf;
+	 }
+	
 	
 }
 
