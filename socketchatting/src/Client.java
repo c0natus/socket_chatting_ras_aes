@@ -18,7 +18,7 @@ public class Client {
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 		try {
-			Socket cli_socket = new Socket("127.0.0.1",8889);
+			Socket cli_socket = new Socket("127.0.0.1",8887);
 			System.out.println("conneted!");
 			BufferedReader rc = new BufferedReader(new InputStreamReader(cli_socket.getInputStream()));
 			String msg = rc.readLine();
@@ -105,21 +105,17 @@ class send2server extends Thread{
 			while(true) {
 				System.out.print("> ");
 				line = keyboard.readLine();
-				try {
-					String en = enAES(line,secretkey);
-					npw.println(en);
-					npw.flush();
-					if(line.equals("exit")) {
-						System.out.println("exit");
-						cli_socket.close();
-						System.exit(0);
-					}
-				} catch (Exception e) {
-					// TODO Auto-generated catch block
-					System.out.println(e);
+	
+				String en = enAES(line,secretkey);
+				npw.println(en);
+				npw.flush();
+				if(line.equals("exit")) {
+					System.out.println("exit");
+					cli_socket.close();
+					System.exit(0);
 				}
 			}
-		}catch(IOException e) {
+		}catch(Exception e) {
 			System.out.println(e);
 		}
 	}
@@ -167,28 +163,24 @@ class recvfserver extends Thread{
 			while(true) {
 				msg = nbr.readLine();
 				String plain;
-				try {
-					if(msg == null) {
-						System.out.println("exit");
-						cli_socket.close();
-						System.exit(0);
-					}
-					plain = deAES(msg,secretkey);
-					System.out.println("Received : " + plain);
-					System.out.println("Encrypted Message : "+msg);
-					System.out.println(plain);
-					if(plain.equals("exit") ) {
-						System.out.println("exit");
-						cli_socket.close();
-						System.exit(0);
-					}
-				} catch (Exception e) {
-					System.out.println(e);
-				}
 				
+				if(msg == null) {
+					System.out.println("exit");
+					cli_socket.close();
+					System.exit(0);
+				}
+				plain = deAES(msg,secretkey);
+				System.out.println("Received : " + plain);
+				System.out.println("Encrypted Message : "+msg);
+				System.out.println(plain);
+				if(plain.equals("exit") ) {
+					System.out.println("exit");
+					cli_socket.close();
+					System.exit(0);
+				}			
 			}
 			
-		}catch(IOException e) {
+		}catch(Exception e) {
 			System.out.println(e);
 		}
 	}

@@ -16,7 +16,7 @@ public class Server {
 		// TODO Auto-generated method stub
 		
 		try {
-			ServerSocket ser_socket = new ServerSocket(8889);
+			ServerSocket ser_socket = new ServerSocket(8887);
 			Socket cli_socket = ser_socket.accept();
 			System.out.println("Creating RSA Key Pair...");
 			KeyPair rsak = generatersakey();
@@ -108,20 +108,18 @@ class send2client extends Thread {
 			while(true) {
 				System.out.print("> ");
 				line = keyboard.readLine();
-				try {
-					String en = enAES(line, secretkey);
-					npw.println(line);
-					npw.flush();
-					if(line.equals("exit")) {
-						System.out.println("exit");
-						cli_socket.close();
-						System.exit(0);
-					}
-				} catch (Exception e) {
-					System.out.println(e);
+				
+				String en = enAES(line, secretkey);
+				npw.println(line);
+				npw.flush();
+				if(line.equals("exit")) {
+					System.out.println("exit");
+					cli_socket.close();
+					System.exit(0);
 				}
+				
 			}
-		}catch(IOException e) {
+		}catch(Exception e) {
 			System.out.println(e);
 		}
 	}
@@ -169,26 +167,22 @@ class recvfclient extends Thread{
 			
 			while(true) {
 				msg = nbr.readLine();
-				try {
-					if(msg == null) {
-						System.out.println("exit");
-						cli_socket.close();
-						System.exit(0);
-					}
-					String de = deAES(msg,secretkey);
-					System.out.println("Received : " + de);
-					System.out.println("Encrypted Message : "+msg);
-					if(de.equals("exit")) {
-						System.out.println("exit");
-						cli_socket.close();
-						System.exit(0);
-					}
-				} catch (Exception e) {
-					System.out.println(e);
+				if(msg == null) {
+					System.out.println("exit");
+					cli_socket.close();
+					System.exit(0);
+				}
+				String de = deAES(msg,secretkey);
+				System.out.println("Received : " + de);
+				System.out.println("Encrypted Message : "+msg);
+				if(de.equals("exit")) {
+					System.out.println("exit");
+					cli_socket.close();
+					System.exit(0);
 				}
 			}
 			
-		}catch(IOException e) {
+		}catch(Exception e) {
 			System.out.println(e);
 		}
 	}
