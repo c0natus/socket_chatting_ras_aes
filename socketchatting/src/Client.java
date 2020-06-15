@@ -36,7 +36,9 @@ public class Client {
 			
 			recvfserver r = new recvfserver();
 			r.setSocket(cli_socket);
+			r.setKey(secretkey);
 			send2server s = new send2server();
+			r.setKey(secretkey);
 			s.setSocket(cli_socket);
 			
 			r.start();
@@ -87,22 +89,34 @@ public class Client {
 class send2server extends Thread{
 	
 	private Socket cli_socket;
+	private Key secretkey;
+	
+	public void setKey(Key _key) {
+		secretkey = _key;
+	}
 	
 	public void run() {
 		super.run();
 		try {
 			BufferedReader keyboard = new BufferedReader(new InputStreamReader(System.in));
-			PrintWriter pw = new PrintWriter(cli_socket.getOutputStream());
-			
+			PrintWriter npw = new PrintWriter(cli_socket.getOutputStream());
+			System.out.println(secretkey);
 			String line = null;
 			while(true) {
+				System.out.print("> ");
 				line = keyboard.readLine();
-				pw.println(line);
-				pw.flush();
-				if(line.equals("exit")) {
-					System.out.println("exit");
-					cli_socket.close();
-					System.exit(0);
+				try {
+					String en = enAES(line,secretkey);
+					npw.println(en);
+					npw.flush();
+					if(line.equals("exit")) {
+						System.out.println("exit");
+						cli_socket.close();
+						System.exit(0);
+					}
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					System.out.println(e);
 				}
 			}
 		}catch(IOException e) {
@@ -133,28 +147,45 @@ class send2server extends Thread{
 class recvfserver extends Thread{
 	
 	private Socket cli_socket;
-
+	private Key secretkey;
 	
 	public void setSocket(Socket _socket) {
 		cli_socket = _socket;
 		
 	}
 	
+	public void setKey(Key _key) {
+		secretkey = _key;
+	}
+	
 	public void run() {
 		super.run();
 		try {
-			BufferedReader br = new BufferedReader(new InputStreamReader(cli_socket.getInputStream()));
+			BufferedReader nbr = new BufferedReader(new InputStreamReader(cli_socket.getInputStream()));
 			String msg = null;
 			
 			while(true) {
-				msg = br.readLine();
-				String plain = deAES(msg,);
-				System.out.println(plain);
-				if(msg==null) {
-					System.out.println("exit");
-					cli_socket.close();
-					System.exit(0);
+				msg = nbr.readLine();
+				String plain;
+				try {
+					if(msg == null) {
+						System.out.println("exit");
+						cli_socket.close();
+						System.exit(0);
+					}
+					plain = deAES(msg,secretkey);
+					System.out.println("Received : " + plain);
+					System.out.println("Encrypted Message : "+msg);
+					System.out.println(plain);
+					if(plain.equals("exit") ) {
+						System.out.println("exit");
+						cli_socket.close();
+						System.exit(0);
+					}
+				} catch (Exception e) {
+					System.out.println(e);
 				}
+				
 			}
 			
 		}catch(IOException e) {
