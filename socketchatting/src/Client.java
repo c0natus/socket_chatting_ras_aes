@@ -3,10 +3,12 @@ import java.math.BigInteger;
 import java.net.*;
 import java.security.Key;
 import java.security.KeyFactory;
+import java.security.SecureRandom;
 import java.security.spec.RSAPublicKeySpec;
 import java.util.Base64;
 
 import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
 
 public class Client {
 
@@ -14,11 +16,22 @@ public class Client {
 		// TODO Auto-generated method stub
 		try {
 			Socket cli_socket = new Socket("127.0.0.1",8889);
-			System.out.println("connetec!");
+			System.out.println("conneted!");
 			BufferedReader rc = new BufferedReader(new InputStreamReader(cli_socket.getInputStream()));
 			String msg = rc.readLine();
 			System.out.println(">Received Public Key : "+msg);
 			Key serverpublick = setPublicKeySpecStr(msg);
+			System.out.println("Creating AES 256 key ...");
+			Key secretkey = generator();
+			System.out.println("AES 256 key : " + secretkey);
+			String encodekey = Base64.getEncoder().encodeToString(secretkey.getEncoded());
+			String en = enRSA(encodekey,serverpublick);
+			System.out.println("Encrypted AES Key : " + en);
+			PrintWriter pw = new PrintWriter(cli_socket.getOutputStream());
+			pw.println(en);
+			pw.flush();
+			
+			
 			
 			
 			recvfserver r = new recvfserver();
@@ -35,7 +48,7 @@ public class Client {
 
 	}
 	/*
-	 * 공개키 문자열로 공개키를 생성한다.
+	 * 
 	 */
 
 	public static Key setPublicKeySpecStr(String specStr) throws Exception {
@@ -49,7 +62,7 @@ public class Client {
 		RSAPublicKeySpec publicKeySpec	= new RSAPublicKeySpec(new BigInteger(modulus), new BigInteger(exponent));
 		return KeyFactory.getInstance("RSA").generatePublic(publicKeySpec);
 	}
-	/*rsa 암호화*/
+	/**/
 	public static String enRSA(String plainText,Key rsapublick) throws Exception {
 
 	    Cipher cipher = Cipher.getInstance("RSA");
@@ -58,6 +71,14 @@ public class Client {
 	    String encrypted = Base64.getEncoder().encodeToString(bytePlain);
 		return encrypted;
 
+	}
+	//
+	public static Key generator() throws Exception {
+		KeyGenerator gen = KeyGenerator.getInstance("AES");
+		SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
+		gen.init(256, random);
+		Key securek = gen.generateKey();
+		return securek;		
 	}
 
 }
