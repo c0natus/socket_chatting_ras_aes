@@ -14,15 +14,11 @@ public class Client {
 		// TODO Auto-generated method stub
 		try {
 			Socket cli_socket = new Socket("127.0.0.1",8889);
-			
-			BufferedReader br = new BufferedReader(new InputStreamReader(cli_socket.getInputStream()));
-			String msg = null;
-			msg = br.readLine();
-			System.out.println(msg);
+			System.out.println("connetec!");
+			BufferedReader rc = new BufferedReader(new InputStreamReader(cli_socket.getInputStream()));
+			String msg = rc.readLine();
+			System.out.println(">Received Public Key : "+msg);
 			Key serverpublick = setPublicKeySpecStr(msg);
-			
-			System.out.println(serverpublick);
-			
 			
 			
 			recvfserver r = new recvfserver();

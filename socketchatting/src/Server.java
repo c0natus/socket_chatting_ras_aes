@@ -24,6 +24,8 @@ public class Server {
 
 			PrintWriter pw = new PrintWriter(cli_socket.getOutputStream());
 			pw.println(rsapublick);
+			pw.flush();
+			System.out.println("rsa send ¿Ï·á");
 			
 			recvfclient r = new recvfclient();
 			r.setSocket(cli_socket);
