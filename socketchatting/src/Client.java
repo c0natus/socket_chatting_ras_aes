@@ -22,7 +22,6 @@ public class Client {
 		// TODO Auto-generated method stub
 		try {
 			Socket cli_socket = new Socket("127.0.0.1",8886);
-			System.out.println("conneted!");
 			BufferedReader rc = new BufferedReader(new InputStreamReader(cli_socket.getInputStream()));
 			String msg = rc.readLine();
 			System.out.println(">Received Public Key : "+msg);
