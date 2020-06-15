@@ -7,7 +7,10 @@ import java.security.Key;
 import java.security.KeyFactory;
 import java.security.SecureRandom;
 import java.security.spec.RSAPublicKeySpec;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.Base64;
+import java.util.Calendar;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
@@ -18,7 +21,7 @@ public class Client {
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 		try {
-			Socket cli_socket = new Socket("127.0.0.1",8887);
+			Socket cli_socket = new Socket("127.0.0.1",8890);
 			System.out.println("conneted!");
 			BufferedReader rc = new BufferedReader(new InputStreamReader(cli_socket.getInputStream()));
 			String msg = rc.readLine();
@@ -101,13 +104,16 @@ class send2server extends Thread{
 	public void run() {
 		super.run();
 		try {
+			SimpleDateFormat format = new SimpleDateFormat("[yyyy/MM/dd hh:mm:ss]");
+			Calendar cal = Calendar.getInstance();
 			BufferedReader keyboard = new BufferedReader(new InputStreamReader(System.in));
 			PrintWriter npw = new PrintWriter(cli_socket.getOutputStream());
 			String line = null;
 			while(true) {
 				System.out.print("> ");
 				line = keyboard.readLine();
-				String en = enAES(line,secretkey);
+				String today = format.format(cal.getTime());				
+				String en = enAES("\""+line+"\" "+today,secretkey);
 				npw.println(en);
 				npw.flush();
 				if(line.equals("exit")) {

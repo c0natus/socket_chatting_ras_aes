@@ -4,6 +4,7 @@ import java.net.*;
 import java.nio.ByteBuffer;
 import java.security.*;
 import java.security.spec.RSAPublicKeySpec;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import javax.crypto.*;
 import javax.crypto.spec.IvParameterSpec;
@@ -16,7 +17,7 @@ public class Server {
 		// TODO Auto-generated method stub
 		
 		try {
-			ServerSocket ser_socket = new ServerSocket(8887);
+			ServerSocket ser_socket = new ServerSocket(8890);
 			Socket cli_socket = ser_socket.accept();
 			System.out.println("Creating RSA Key Pair...");
 			KeyPair rsak = generatersakey();
@@ -100,6 +101,8 @@ class send2client extends Thread {
 	public void run() {
 		super.run();
 		try {
+			SimpleDateFormat format = new SimpleDateFormat("[yyyy/MM/dd hh:mm:ss]");
+			Calendar cal = Calendar.getInstance();
 			BufferedReader keyboard = new BufferedReader(new InputStreamReader(System.in));
 			PrintWriter npw = new PrintWriter(cli_socket.getOutputStream());
 			System.out.println(secretkey);
@@ -107,8 +110,8 @@ class send2client extends Thread {
 			while(true) {
 				System.out.print("> ");
 				line = keyboard.readLine();
-				
-				String en = enAES(line, secretkey);
+				String today = format.format(cal.getTime());
+				String en = enAES("\""+line+"\" "+today,secretkey);
 				npw.println(line);
 				npw.flush();
 				if(line.equals("exit")) {
