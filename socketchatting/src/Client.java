@@ -21,7 +21,7 @@ public class Client {
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 		try {
-			Socket cli_socket = new Socket("127.0.0.1",8890);
+			Socket cli_socket = new Socket("127.0.0.1",8886);
 			System.out.println("conneted!");
 			BufferedReader rc = new BufferedReader(new InputStreamReader(cli_socket.getInputStream()));
 			String msg = rc.readLine();

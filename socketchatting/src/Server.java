@@ -17,7 +17,7 @@ public class Server {
 		// TODO Auto-generated method stub
 		
 		try {
-			ServerSocket ser_socket = new ServerSocket(8890);
+			ServerSocket ser_socket = new ServerSocket(8886);
 			Socket cli_socket = ser_socket.accept();
 			System.out.println("Creating RSA Key Pair...");
 			KeyPair rsak = generatersakey();
