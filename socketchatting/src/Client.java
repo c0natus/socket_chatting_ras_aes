@@ -18,6 +18,7 @@ public class Client {
 			BufferedReader br = new BufferedReader(new InputStreamReader(cli_socket.getInputStream()));
 			String msg = null;
 			msg = br.readLine();
+			System.out.println(msg);
 			Key serverpublick = setPublicKeySpecStr(msg);
 			
 			System.out.println(serverpublick);
