@@ -17,32 +17,50 @@ public class Server {
 		// TODO Auto-generated method stub
 		
 		try {
-			ServerSocket ser_socket = new ServerSocket(8886);
+			/*accept client at port and create RSA Public, Private Key*/
+			ServerSocket ser_socket = new ServerSocket(8891);
 			Socket cli_socket = ser_socket.accept();
 			System.out.println("Creating RSA Key Pair...");
 			KeyPair rsak = generatersakey();
 			System.out.println("Private Key : "+rsak.getPrivate());
 			System.out.println("Public Key : "+rsak.getPublic());
+			
+			/*convert RSA public Key to String and send to Client*/
 			String rsapublick = raspublick_str(rsak.getPublic());
 			PrintWriter pw = new PrintWriter(cli_socket.getOutputStream());
 			pw.println(rsapublick);
 			pw.flush();
 			
+			/*receive from Client(AES session key : secret key + iv) and get encoding AES session using RSA decrypt */
 			BufferedReader rc = new BufferedReader(new InputStreamReader(cli_socket.getInputStream()));
 			String msg = rc.readLine();
 			System.out.println(">Received AES Key : "+msg);
-			String encodekey = deRSA(msg, rsak.getPrivate());
-			byte[] decodekey = Base64.getDecoder().decode(encodekey);
-			SecretKey secretkey = new SecretKeySpec(decodekey,0,decodekey.length,"AES");
-			System.out.println("Decrypted AES key : " + secretkey);
+			String encodeplain = deRSA(msg, rsak.getPrivate());
 			
+			/*Decode the encoding and get iv, secret key from the decoding text */
+			ByteBuffer re = ByteBuffer.wrap(Base64.getDecoder().decode(encodeplain));
+			Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+			byte[] ivBytes = new byte[cipher.getBlockSize()];
+			re.get(ivBytes,0,ivBytes.length);
+			byte[] keyBytes = new byte[re.capacity()-ivBytes.length];
+			re.get(keyBytes);
+			SecretKey secretkey = new SecretKeySpec(keyBytes,0,keyBytes.length,"AES");
+			IvParameterSpec iv = new IvParameterSpec(ivBytes);
+			System.out.println("Decrypted AES key : " + secretkey + " Initial vector : " + iv);
+			
+			/*create Thread Receive From Client and pass parameter (client socket, AES secret key)*/
 			recvfclient r = new recvfclient();
 			r.setSocket(cli_socket);
 			r.setKey(secretkey);
+			r.setiv(iv);
+
+			/*create Thread Send to client and pass parameter (client socket, AES secret key)*/
 			send2client s = new send2client();
 			s.setKey(secretkey);
 			s.setSocket(cli_socket);
+			s.setiv(iv);
 			
+			/*Thread start*/
 			r.start();
 			s.start();
 			
@@ -53,47 +71,45 @@ public class Server {
 		}
 	}
 	
-	/*	Key : 
-	 *  Sun RSA public key, 2048 bits
-  	 *	params: null
-  	 *	modulus: 23861943561036244894366825182473601710745899993903073317155944944894843266152734008667664734678932244560143671137293628334001481511854804216390451182162896872630838313281736195325722266148484456896219681267594467374010033965504773083508766594340607256941025873168841099160242101196715450986052302438066239811161985805890570701583597365808949970393943728419250390352370097669239270615081347291705891364965760763102373760238554747178792764266935663267447238909125111492585387796702831450934370137093064047316073059298066155179400041216920895399982439464260603975351724005444761591745051627533844885375962744737423018113
-  	 *	public exponent: 65537
-	 * */
+	
+	/*convert RSA public key to String*/
 	public static String raspublick_str(Key public_rsak) throws Exception{
+		/*convert public_rsak into key specification params, modulus, public exponent and get modulus, exponent string*/
 		RSAPublicKeySpec publickeyspec = KeyFactory.getInstance("RSA").getKeySpec(public_rsak, RSAPublicKeySpec.class);
-		return publickeyspec.getModulus() + "/" + publickeyspec.getPublicExponent(); 
+		return publickeyspec.getModulus() + "/" + publickeyspec.getPublicExponent(); // distinguish modulus, exponent using /
 		
 	}
+	/*generate RSA Key Pair()2048 bit*/
 	public static KeyPair generatersakey() throws Exception{
-		KeyPairGenerator kg = KeyPairGenerator.getInstance("RSA");
-		kg.initialize(2048);
+		KeyPairGenerator kg = KeyPairGenerator.getInstance("RSA");	// get RSA key pair
+		kg.initialize(2048);	// key bit : 2048
 		KeyPair rsakey = kg.genKeyPair();
-		
 		return rsakey;
-		
 	}
 
-	/*rsa */
+	/*RSA decrypt encrypted text */
 	public static String deRSA(String encrypted, Key rsaprivatek) throws Exception{
-
-	        Cipher cipher = Cipher.getInstance("RSA");
-	        byte[] byteEncrypted = Base64.getDecoder().decode(encrypted.getBytes("UTF-8"));
-	        cipher.init(Cipher.DECRYPT_MODE, rsaprivatek);
-	        byte[] bytePlain = cipher.doFinal(byteEncrypted);
-	        String decrypted = new String(bytePlain, "UTF-8");
+	        Cipher RSAc = Cipher.getInstance("RSA"); // algorithm is RSA
+	        byte[] byteRSAc = Base64.getDecoder().decode(encrypted.getBytes("UTF-8")); // there is a bug (byte[] > string > byte[]), the solution is using BASE64
+	        RSAc.init(Cipher.DECRYPT_MODE, rsaprivatek); // initialize : decrypt, using private key
+	        byte[] bytePlain = RSAc.doFinal(byteRSAc);	//  RSA decrypt data in a single-part operation
+	        String decrypted = new String(bytePlain, "UTF-8"); // byte to string decoding UTF-8
 	        return decrypted;
-
-	 }
-	
-	
+	 }	
 }
 
+
+/*Send to Client Thread*/
 class send2client extends Thread {
 	
-	
+	/*get parameter client socket, AES key, iv*/
 	private Socket cli_socket;
 	private Key secretkey;
+	private IvParameterSpec aesiv;
 	
+	public void setiv(IvParameterSpec _iv) {
+		aesiv = _iv;
+	}
 	public void setKey(Key _key) {
 		secretkey = _key;
 	}
@@ -104,20 +120,28 @@ class send2client extends Thread {
 	public void run() {
 		super.run();
 		try {
-			SimpleDateFormat format = new SimpleDateFormat("[yyyy/MM/dd hh:mm:ss]");
+			/*setting time stamp format and create object calendar with present date, time */
+			SimpleDateFormat format = new SimpleDateFormat("[yyyy/MM/dd HH:mm:ss]");
 			Calendar cal = Calendar.getInstance();
+			String today = format.format(cal.getTime());
+			/* create bufferedreader object to get String from standard in
+			 * create PrintWriter object to write string to client socket output stream*/
 			BufferedReader keyboard = new BufferedReader(new InputStreamReader(System.in));
-			PrintWriter npw = new PrintWriter(cli_socket.getOutputStream());
+			PrintWriter serverpw = new PrintWriter(cli_socket.getOutputStream());
 			String line = null;
 			while(true) {
 				System.out.print("> ");
+				/*read from standard in and get present time in format*/
 				line = keyboard.readLine();
-				String today = format.format(cal.getTime());				
-				String en = enAES("\""+line+"\" "+today,secretkey);
-				npw.println(en);
-				npw.flush();
+				cal = Calendar.getInstance();
+				today = format.format(cal.getTime());			
+				/* AES encrypt plain text and send to client*/
+				String en = enAES("\""+line+"\" "+today,secretkey,aesiv);
+				serverpw.println(en);
+				serverpw.flush();
+				/*if server input exit, server diconnect*/
 				if(line.equals("exit")) {
-					System.out.println("exit");
+					System.out.println("disconnect! bye");
 					cli_socket.close();
 					System.exit(0);
 				}
@@ -126,27 +150,26 @@ class send2client extends Thread {
 			System.out.println(e);
 		}
 	}
-	public static String enAES(String plainText, Key secret) throws Exception{
-		Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-		cipher.init(Cipher.ENCRYPT_MODE, secret);
-		AlgorithmParameters params = cipher.getParameters();
-		byte[] ivBytes = params.getParameterSpec(IvParameterSpec.class).getIV();
-		byte[] encryptedTextBytes = cipher.doFinal(plainText.getBytes("UTF-8"));
-		byte[] buffer = new byte[ivBytes.length + encryptedTextBytes.length];
-		System.arraycopy(ivBytes, 0, buffer, 0 , ivBytes.length);
-		System.arraycopy(encryptedTextBytes, 0, buffer, ivBytes.length, encryptedTextBytes.length);
-		
-		String buf = Base64.getEncoder().encodeToString(buffer);
-		return buf;
-	 }
+	/*AES encrypt*/
+	public static String enAES(String plainText, Key secret, IvParameterSpec iv) throws Exception{
+		Cipher AESc = Cipher.getInstance("AES/CBC/PKCS5Padding"); // AESc transformation
+		AESc.init(Cipher.ENCRYPT_MODE, secret, iv); // initialize : encrypt with key, iv
+		byte[] encryptedTextBytes = AESc.doFinal(plainText.getBytes("UTF-8")); // Encrypts plain text, finishes a multiple-part operation
+		String encodedciphertext = Base64.getEncoder().encodeToString(encryptedTextBytes); // there is a bug (byte[] > string > byte[]), the solution is using BASE64
+		return encodedciphertext;
+	}
 	
 }
-
+/*Receive from Client Thread*/
 class recvfclient extends Thread{
-	
+	/*get parameter client socket, AES key, iv*/
 	private Socket cli_socket;
 	private Key secretkey;
+	private IvParameterSpec aesiv;
 	
+	public void setiv(IvParameterSpec _iv) {
+		aesiv = _iv;
+	}
 	public void setKey(Key _key) {
 		secretkey = _key;
 	}
@@ -159,24 +182,23 @@ class recvfclient extends Thread{
 	public void run() {
 		super.run();
 		try {
+			/*read buffer from client socket input*/
 			BufferedReader nbr = new BufferedReader(new InputStreamReader(cli_socket.getInputStream()));
 			String msg = null;
-			
 			while(true) {
+				/*block until \r\n(stream \n) is inputed*/
 				msg = nbr.readLine();
+				/*if client disconnet, msg is null*/
 				if(msg == null) {
-					System.out.println("exit");
+					/*setting time stamp format and create object calendar with present date, time */
+					System.out.println("\"Client disconnet!\"");
 					cli_socket.close();
 					System.exit(0);
 				}
-				String de = deAES(msg,secretkey);
+				/*AES decrypt msg with key, iv*/
+				String de = deAES(msg,secretkey,aesiv);
 				System.out.println("Received : " + de);
 				System.out.println("Encrypted Message : "+msg);
-				if(de.equals("exit")) {
-					System.out.println("exit");
-					cli_socket.close();
-					System.exit(0);
-				}
 				System.out.print("> ");
 			}
 			
@@ -185,18 +207,13 @@ class recvfclient extends Thread{
 		}
 	}
 	
-	public static String deAES(String en, Key secret) throws Exception{
-		 
-		Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-		ByteBuffer buffer = ByteBuffer.wrap(Base64.getDecoder().decode(en));
-		byte[] ivBytes = new byte[cipher.getBlockSize()];
-		buffer.get(ivBytes,0,ivBytes.length);
-		byte[] encryoptedTextBytes = new byte[buffer.capacity()-ivBytes.length];
-		buffer.get(encryoptedTextBytes);
-		cipher.init(Cipher.DECRYPT_MODE,secret,new IvParameterSpec(ivBytes));
-		byte[] decryptedTextBytes = cipher.doFinal(encryoptedTextBytes);
-		String buf = new String(decryptedTextBytes,"UTF-8");
-		return buf;
-	 }
+	public static String deAES(String en, Key secret, IvParameterSpec iv) throws Exception{
+		Cipher AESc = Cipher.getInstance("AES/CBC/PKCS5Padding"); // AESc transformation
+		byte[] encrypted = Base64.getDecoder().decode(en); // decode the encoded encrypted text 
+		AESc.init(Cipher.DECRYPT_MODE,secret,iv);		// initialize : decrypt with key, iv
+		byte[] decryptedTextBytes = AESc.doFinal(encrypted); // decrypts encrypted text, finishes a multiple-part operation
+		String plainText = new String(decryptedTextBytes,"UTF-8");	// byte to string decoding UTF-8
+		return plainText;
+	}
 	
 }

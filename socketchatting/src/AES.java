@@ -1,5 +1,4 @@
 import java.security.Key;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.nio.ByteBuffer;
@@ -8,9 +7,7 @@ import java.security.*;
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
-import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 
 public class AES {
@@ -18,33 +15,61 @@ public class AES {
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 		try {
-			//String plain = "뷁뷁뷁";
-			//System.out.println("plain : "+ plain);
+			String plain = "hihihi";
+			System.out.println("plain : "+ plain);
 			
-			
+			Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+			AlgorithmParameters params = cipher.getParameters();
+			System.out.println("param : "+params);
+			IvParameterSpec iv = params.getParameterSpec(IvParameterSpec.class);
 			Key sec = generator();
-			System.out.println(sec);
-			String encodekey = Base64.getEncoder().encodeToString(sec.getEncoded());
-			System.out.println(encodekey);
-			byte[] decodekey = Base64.getDecoder().decode(encodekey);
-			SecretKey key = new SecretKeySpec(decodekey,0,decodekey.length,"AES");
-			System.out.println(key);
-			/*
-			String en = enAES(plain,sec);
-			System.out.println("en : "+en);
-			String de = deAES(en,sec);
-			System.out.println("de : "+de);
+			System.out.println("iv : " + iv);
+			System.out.println("key: " + sec);
+
+			byte[] ivBytes = iv.getIV();
+			byte[] keyBytes = sec.getEncoded();
 			
-			String en1 = enAES(plain,sks);
-			System.out.println("en1 : "+en1);
-			String de1 = deAES(en,sks);
-			System.out.println("de1 : " + de1);
-			 */
+			System.out.println("iv b : " + ivBytes);
+			System.out.println("key b : " + keyBytes);
+			
+			byte[] buffer = new byte[ivBytes.length+keyBytes.length];
+			System.arraycopy(ivBytes, 0, buffer, 0, ivBytes.length);
+			System.arraycopy(keyBytes, 0, buffer, ivBytes.length, keyBytes.length);
+			System.out.println("buffer b : " + buffer);
+			String buf = Base64.getEncoder().encodeToString(buffer);
+			System.out.println("String b : " + buf);
+			
+			
+			ByteBuffer re = ByteBuffer.wrap(Base64.getDecoder().decode(buf));
+			System.out.println("re b : " + re);
+			byte[] nivBytes = new byte[cipher.getBlockSize()];
+			re.get(nivBytes,0,nivBytes.length);
+			byte[] nkeyBytes = new byte[re.capacity()-nivBytes.length];
+			re.get(nkeyBytes);
+			
+			System.out.println("niv b : "+nivBytes+" " +nivBytes.length);
+			System.out.println("nkey b : " + nkeyBytes+ " "+nkeyBytes.length);
+			
+	
+			SecretKey key = new SecretKeySpec(nkeyBytes,0,nkeyBytes.length,"AES");
+			IvParameterSpec niv = new IvParameterSpec(nivBytes);
+			System.out.println("after nkey : " + key+" niv : " + niv);
+			
+			String en = enAES(plain,key,niv);
+			System.out.println("en1 : "+en);
+			String de = deAES(en,key,iv);
+			System.out.println("de1 : "+de);
+			
+			en = enAES(plain,sec,niv);
+			System.out.println("en2 : "+en);
+			de = deAES(en,sec,iv);
+			System.out.println("de2 : "+de);
+			
 		}catch(Exception e) {
 			System.out.println(e);
 		}
 	}
-	//AES 키 생성
+	
 	public static Key generator() throws Exception {
 		KeyGenerator gen = KeyGenerator.getInstance("AES");
 		SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
@@ -54,34 +79,18 @@ public class AES {
 		return securek;		
 	}
 
-	 // AES 암호화
-	public static String enAES(String plainText, Key secret) throws Exception{
-		Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-		cipher.init(Cipher.ENCRYPT_MODE, secret);
-		AlgorithmParameters params = cipher.getParameters();
-		byte[] ivBytes = params.getParameterSpec(IvParameterSpec.class).getIV();
-		byte[] encryptedTextBytes = cipher.doFinal(plainText.getBytes("UTF-8"));
-		byte[] keyBytes = secret.getEncoded();
-		System.out.println(keyBytes.length);
-		byte[] buffer = new byte[ivBytes.length + encryptedTextBytes.length];
-		System.arraycopy(ivBytes, 0, buffer, 0 , ivBytes.length);
-		System.arraycopy(encryptedTextBytes, 0, buffer, ivBytes.length, encryptedTextBytes.length);
-		
-		String buf = Base64.getEncoder().encodeToString(buffer);
+	public static String enAES(String plainText, Key secret, IvParameterSpec iv) throws Exception{
+		Cipher AESc = Cipher.getInstance("AES/CBC/PKCS5Padding");
+		AESc.init(Cipher.ENCRYPT_MODE, secret, iv);
+		byte[] encryptedTextBytes = AESc.doFinal(plainText.getBytes("UTF-8"));
+		String buf = Base64.getEncoder().encodeToString(encryptedTextBytes);
 		return buf;
-	 }
-	 // AES 복호화
-	public static String deAES(String en, Key secret) throws Exception{
-		 
-		Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-		ByteBuffer buffer = ByteBuffer.wrap(Base64.getDecoder().decode(en));
-		byte[] ivBytes = new byte[cipher.getBlockSize()];
-		buffer.get(ivBytes,0,ivBytes.length);
-		byte[] encryoptedTextBytes = new byte[buffer.capacity()-ivBytes.length];
-		buffer.get(encryoptedTextBytes);
-		
-		cipher.init(Cipher.DECRYPT_MODE,secret,new IvParameterSpec(ivBytes));
-		byte[] decryptedTextBytes = cipher.doFinal(encryoptedTextBytes);
+	}
+	public static String deAES(String en, Key secret, IvParameterSpec iv) throws Exception{
+		Cipher AESc = Cipher.getInstance("AES/CBC/PKCS5Padding");
+		byte[] encrypted = Base64.getDecoder().decode(en);
+		AESc.init(Cipher.DECRYPT_MODE,secret,iv);
+		byte[] decryptedTextBytes = AESc.doFinal(encrypted);
 		String buf = new String(decryptedTextBytes,"UTF-8");
 		return buf;
 	 }
