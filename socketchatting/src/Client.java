@@ -131,7 +131,6 @@ class send2server extends Thread{
 		AlgorithmParameters params = cipher.getParameters();
 		byte[] ivBytes = params.getParameterSpec(IvParameterSpec.class).getIV();
 		byte[] encryptedTextBytes = cipher.doFinal(plainText.getBytes("UTF-8"));
-		byte[] keyBytes = secret.getEncoded();
 		byte[] buffer = new byte[ivBytes.length + encryptedTextBytes.length];
 		System.arraycopy(ivBytes, 0, buffer, 0 , ivBytes.length);
 		System.arraycopy(encryptedTextBytes, 0, buffer, ivBytes.length, encryptedTextBytes.length);
@@ -163,24 +162,21 @@ class recvfserver extends Thread{
 			
 			while(true) {
 				msg = nbr.readLine();
-				String plain;
-				
 				if(msg == null) {
 					System.out.println("exit");
 					cli_socket.close();
 					System.exit(0);
 				}
-				plain = deAES(msg,secretkey);
+				String plain = deAES(msg,secretkey);
 				System.out.println("Received : " + plain);
 				System.out.println("Encrypted Message : "+msg);
-				System.out.println(plain);
 				if(plain.equals("exit") ) {
 					System.out.println("exit");
 					cli_socket.close();
 					System.exit(0);
 				}			
+				System.out.println("> ");
 			}
-			
 		}catch(Exception e) {
 			System.out.println(e);
 		}

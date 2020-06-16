@@ -90,13 +90,16 @@ public class Server {
 
 class send2client extends Thread {
 	
+	
 	private Socket cli_socket;
 	private Key secretkey;
 	
 	public void setKey(Key _key) {
 		secretkey = _key;
 	}
-
+	public void setSocket(Socket _socket) {
+		cli_socket = _socket;
+	}
 	
 	public void run() {
 		super.run();
@@ -105,34 +108,30 @@ class send2client extends Thread {
 			Calendar cal = Calendar.getInstance();
 			BufferedReader keyboard = new BufferedReader(new InputStreamReader(System.in));
 			PrintWriter npw = new PrintWriter(cli_socket.getOutputStream());
-			System.out.println(secretkey);
 			String line = null;
 			while(true) {
 				System.out.print("> ");
 				line = keyboard.readLine();
-				String today = format.format(cal.getTime());
+				String today = format.format(cal.getTime());				
 				String en = enAES("\""+line+"\" "+today,secretkey);
-				npw.println(line);
+				npw.println(en);
 				npw.flush();
 				if(line.equals("exit")) {
 					System.out.println("exit");
 					cli_socket.close();
 					System.exit(0);
 				}
-				
 			}
 		}catch(Exception e) {
 			System.out.println(e);
 		}
 	}
-	
 	public static String enAES(String plainText, Key secret) throws Exception{
 		Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
 		cipher.init(Cipher.ENCRYPT_MODE, secret);
 		AlgorithmParameters params = cipher.getParameters();
 		byte[] ivBytes = params.getParameterSpec(IvParameterSpec.class).getIV();
 		byte[] encryptedTextBytes = cipher.doFinal(plainText.getBytes("UTF-8"));
-		byte[] keyBytes = secret.getEncoded();
 		byte[] buffer = new byte[ivBytes.length + encryptedTextBytes.length];
 		System.arraycopy(ivBytes, 0, buffer, 0 , ivBytes.length);
 		System.arraycopy(encryptedTextBytes, 0, buffer, ivBytes.length, encryptedTextBytes.length);
@@ -141,9 +140,6 @@ class send2client extends Thread {
 		return buf;
 	 }
 	
-	public void setSocket(Socket _socket) {
-		cli_socket = _socket;
-	}
 }
 
 class recvfclient extends Thread{
@@ -181,6 +177,7 @@ class recvfclient extends Thread{
 					cli_socket.close();
 					System.exit(0);
 				}
+				System.out.println("> ");
 			}
 			
 		}catch(Exception e) {
