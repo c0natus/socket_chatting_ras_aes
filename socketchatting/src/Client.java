@@ -69,7 +69,7 @@ public class Client {
 	/**/
 	public static String enRSA(String plainText,Key rsapublick) throws Exception {
 
-	    Cipher cipher = Cipher.getInstance("RSA/CBC/PKCS5Padding");
+	    Cipher cipher = Cipher.getInstance("RSA");
 	    cipher.init(Cipher.ENCRYPT_MODE, rsapublick);
 	    byte[] bytePlain = cipher.doFinal(plainText.getBytes("UTF-8"));
 	    String encrypted = Base64.getEncoder().encodeToString(bytePlain);

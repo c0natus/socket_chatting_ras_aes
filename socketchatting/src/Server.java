@@ -76,7 +76,7 @@ public class Server {
 	/*rsa */
 	public static String deRSA(String encrypted, Key rsaprivatek) throws Exception{
 
-	        Cipher cipher = Cipher.getInstance("RSA/CBC/PKCS5Padding");
+	        Cipher cipher = Cipher.getInstance("RSA");
 	        byte[] byteEncrypted = Base64.getDecoder().decode(encrypted.getBytes("UTF-8"));
 	        cipher.init(Cipher.DECRYPT_MODE, rsaprivatek);
 	        byte[] bytePlain = cipher.doFinal(byteEncrypted);
