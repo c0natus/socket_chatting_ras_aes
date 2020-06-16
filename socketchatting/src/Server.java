@@ -177,7 +177,7 @@ class recvfclient extends Thread{
 					cli_socket.close();
 					System.exit(0);
 				}
-				System.out.println("> ");
+				System.out.print("> ");
 			}
 			
 		}catch(Exception e) {
