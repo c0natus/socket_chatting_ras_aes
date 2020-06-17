@@ -45,7 +45,7 @@ public class Client {
 			System.arraycopy(keyBytes, 0, sessionkeyByte, ivBytes.length, keyBytes.length);
 			String encoding = Base64.getEncoder().encodeToString(sessionkeyByte); // there is a bug (byte[] > string > byte[]), the solution is using BASE64
 			
-			/*RSA encrypt and send to client*/
+			/*RSA encrypt and send to  server*/
 			String en = enRSA(encoding,serverpublick);			
 			System.out.println("Encrypted AES Key : " + en);
 			PrintWriter pw = new PrintWriter(cli_socket.getOutputStream());
