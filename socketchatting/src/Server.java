@@ -46,7 +46,7 @@ public class Server {
 			re.get(keyBytes);
 			SecretKey secretkey = new SecretKeySpec(keyBytes,0,keyBytes.length,"AES");
 			IvParameterSpec iv = new IvParameterSpec(ivBytes);
-			System.out.println("Decrypted AES key : " + secretkey + " Initial vector : " + iv);
+			System.out.println("Decrypted AES secretkey : " + new String(keyBytes,"UTF-8") + ", Initial vector : " + new String(ivBytes, "UTF-8"));
 			
 			/*create Thread Receive From Client and pass parameter (client socket, AES secret key)*/
 			recvfclient r = new recvfclient();

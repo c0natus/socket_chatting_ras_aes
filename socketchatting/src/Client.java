@@ -35,11 +35,11 @@ public class Client {
 			Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
 			AlgorithmParameters params = cipher.getParameters();
 			IvParameterSpec iv = params.getParameterSpec(IvParameterSpec.class);
-			System.out.println("AES 256 key : " + secretkey + " Initial Vector : " + iv);
-			
-			/*convert IV to String for encrypting and sending to server*/
 			byte[] ivBytes = iv.getIV();
 			byte[] keyBytes = secretkey.getEncoded();
+			System.out.println("AES 256 secret key : " + new String(keyBytes, "UTF-8") + ", Initial Vector : " + new String(ivBytes, "UTF-8"));
+			
+			/*convert IV to String for encrypting and sending to server*/
 			byte[] sessionkeyByte = new byte[ivBytes.length+keyBytes.length];
 			System.arraycopy(ivBytes, 0, sessionkeyByte, 0, ivBytes.length);
 			System.arraycopy(keyBytes, 0, sessionkeyByte, ivBytes.length, keyBytes.length);
